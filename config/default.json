@@ -1,4 +1,4 @@
 {
-  "bitcoin_cli_path": "/home/muffin/btcnode/bitcoin-24.0.1/bin/bitcoin-cli",
+  "bitcoin_cli_path": "/usr/local/bin/bitcoin-cli -conf=/Volumes/T7\\ Shield/Bitcoin/bitcoin.conf",
   "start_block": 809607
 }

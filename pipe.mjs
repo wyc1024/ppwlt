@@ -5,10 +5,38 @@ import _bip32 from "bip32";
 const { BIP32Factory } = _bip32;
 const bip32 = BIP32Factory(ecc);
 import bip39 from "bip39";
-import {exec} from "child_process";
+import {exec, execSync} from "child_process";
 import Os from 'os'
 import goodbye from 'graceful-goodbye'
 import config from 'config'
+
+function backupIndexedData() {
+    try {
+        execSync(`cp -r ./pipe ./pipe-${block}`)
+    } catch (e) {
+        process.exit(1)
+    }
+}
+
+async function indexNextBlock() {
+    if(await mustIndex()) {
+        block += 1
+        await sleep(1)
+        await index()
+        if (block % 10 === 0) {
+            backupIndexedData()
+        }
+    }
+}
+
+function getDb() {
+    return db
+}
+
+export {
+    indexNextBlock,
+    getDb,
+}
 
 /*
 * WARNING: This is an initial, pre-alpha PIPE protocol POC/MVP PIPE wallet & indexer.
@@ -119,113 +147,113 @@ goodbye(async function()
 /**
  * Managing cli commands
  */
-if(process.argv.length !== 0)
-{
-    switch(process.argv[2].toLowerCase())
-    {
-        case 'sendtokens':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[10] === 'undefined' ? 'main' : process.argv[10]);
-            }
-            if(typeof process.argv[10] === 'undefined')
-            {
-                process.stdout.write(await sendTokens(process.argv[3], process.argv[4], process.argv[5], process.argv[6], process.argv[7], process.argv[8], 0, typeof process.argv[9] !== 'undefined' && process.argv[9] !== 'null' ? process.argv[9] : null) + "\n");
-            }
-            else
-            {
-                process.stdout.write(await sendTokens(process.argv[3], process.argv[4], process.argv[5], process.argv[6], process.argv[7], process.argv[8], 0, typeof process.argv[9] !== 'undefined' && process.argv[9] !== 'null' ? process.argv[9] : null, process.argv[10]) + "\n");
-            }
-            break;
-        case 'sendsats':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[8] === 'undefined' ? 'main' : process.argv[8]);
-            }
-            if(typeof process.argv[8] === 'undefined')
-            {
-                process.stdout.write(await sendSats(process.argv[3], process.argv[4], process.argv[5], process.argv[6], 0, typeof process.argv[7] !== 'undefined' && process.argv[7] !== 'null' ? process.argv[7] : null) + "\n");
-            }
-            else
-            {
-                process.stdout.write(await sendSats(process.argv[3], process.argv[4], process.argv[5], process.argv[6], 0, typeof process.argv[7] !== 'undefined' && process.argv[7] !== 'null' ? process.argv[7] : null, process.argv[8]) + "\n");
-            }
-            break;
-        case 'walletrestore':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[6] === 'undefined' ? 'main' : process.argv[6]);
-            }
-            if(typeof process.argv[6] !== 'undefined')
-            {
-                process.stdout.write(await createWallet(process.argv[3], true, process.argv[4], typeof process.argv[5] !== 'undefined' && process.argv[5] !== 'null' ? process.argv[5] : null, process.argv[6])+"\n");
-            }
-            else
-            {
-                process.stdout.write(await createWallet(process.argv[3], true, process.argv[4], typeof process.argv[5] !== 'undefined' && process.argv[5] !== 'null' ? process.argv[5] : null)+"\n");
-            }
-            break;
-        case 'walletcreate':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
-            }
-            if(typeof process.argv[5] !== 'undefined')
-            {
-                process.stdout.write(await createWallet(process.argv[3], false, null, typeof process.argv[4] !== 'undefined' && process.argv[4] !== 'null' ? process.argv[4] : null, process.argv[5])+"\n");
-            }
-            else
-            {
-                process.stdout.write(await createWallet(process.argv[3], false, null, typeof process.argv[4] !== 'undefined' && process.argv[4] !== 'null' ? process.argv[4] : null)+"\n");
-            }
-            break;
-        case 'newaddress':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
-            }
-            process.stdout.write(await createAddress(process.argv[3])+"\n");
-            break;
-        case 'getcollectible':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
-            }
-            process.stdout.write(JSON.stringify(await getCollectible(process.argv[3], parseInt(process.argv[4])))+"\n");
-            break;
-        case 'getcollectiblemax':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
-            }
-            process.stdout.write(JSON.stringify(await getCollectibleMax(process.argv[3]))+"\n");
-            break;
-        case 'getdeployment':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
-            }
-            process.stdout.write(JSON.stringify(await getDeployment(process.argv[3], parseInt(process.argv[4])))+"\n");
-            break;
-        case 'getbalance':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[6] === 'undefined' ? 'main' : process.argv[6]);
-            }
-            process.stdout.write(JSON.stringify(await getBalance(process.argv[3], process.argv[4], parseInt(process.argv[5])))+"\n");
-            break;
-        case 'getbalances':
-            if(await mustIndex()) {
-                block += 1;
-                await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
-            }
-            process.stdout.write(await getBalances(process.argv[3])+"\n");
-            break;
-        default:
-            process.stdout.write('{"error":true,"message":"Unknown command"}'+"\n");
-            break;
-    }
-}
+// if(process.argv.length !== 0)
+// {
+//     switch(process.argv[2].toLowerCase())
+//     {
+//         case 'sendtokens':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[10] === 'undefined' ? 'main' : process.argv[10]);
+//             }
+//             if(typeof process.argv[10] === 'undefined')
+//             {
+//                 process.stdout.write(await sendTokens(process.argv[3], process.argv[4], process.argv[5], process.argv[6], process.argv[7], process.argv[8], 0, typeof process.argv[9] !== 'undefined' && process.argv[9] !== 'null' ? process.argv[9] : null) + "\n");
+//             }
+//             else
+//             {
+//                 process.stdout.write(await sendTokens(process.argv[3], process.argv[4], process.argv[5], process.argv[6], process.argv[7], process.argv[8], 0, typeof process.argv[9] !== 'undefined' && process.argv[9] !== 'null' ? process.argv[9] : null, process.argv[10]) + "\n");
+//             }
+//             break;
+//         case 'sendsats':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[8] === 'undefined' ? 'main' : process.argv[8]);
+//             }
+//             if(typeof process.argv[8] === 'undefined')
+//             {
+//                 process.stdout.write(await sendSats(process.argv[3], process.argv[4], process.argv[5], process.argv[6], 0, typeof process.argv[7] !== 'undefined' && process.argv[7] !== 'null' ? process.argv[7] : null) + "\n");
+//             }
+//             else
+//             {
+//                 process.stdout.write(await sendSats(process.argv[3], process.argv[4], process.argv[5], process.argv[6], 0, typeof process.argv[7] !== 'undefined' && process.argv[7] !== 'null' ? process.argv[7] : null, process.argv[8]) + "\n");
+//             }
+//             break;
+//         case 'walletrestore':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[6] === 'undefined' ? 'main' : process.argv[6]);
+//             }
+//             if(typeof process.argv[6] !== 'undefined')
+//             {
+//                 process.stdout.write(await createWallet(process.argv[3], true, process.argv[4], typeof process.argv[5] !== 'undefined' && process.argv[5] !== 'null' ? process.argv[5] : null, process.argv[6])+"\n");
+//             }
+//             else
+//             {
+//                 process.stdout.write(await createWallet(process.argv[3], true, process.argv[4], typeof process.argv[5] !== 'undefined' && process.argv[5] !== 'null' ? process.argv[5] : null)+"\n");
+//             }
+//             break;
+//         case 'walletcreate':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
+//             }
+//             if(typeof process.argv[5] !== 'undefined')
+//             {
+//                 process.stdout.write(await createWallet(process.argv[3], false, null, typeof process.argv[4] !== 'undefined' && process.argv[4] !== 'null' ? process.argv[4] : null, process.argv[5])+"\n");
+//             }
+//             else
+//             {
+//                 process.stdout.write(await createWallet(process.argv[3], false, null, typeof process.argv[4] !== 'undefined' && process.argv[4] !== 'null' ? process.argv[4] : null)+"\n");
+//             }
+//             break;
+//         case 'newaddress':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
+//             }
+//             process.stdout.write(await createAddress(process.argv[3])+"\n");
+//             break;
+//         case 'getcollectible':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
+//             }
+//             process.stdout.write(JSON.stringify(await getCollectible(process.argv[3], parseInt(process.argv[4])))+"\n");
+//             break;
+//         case 'getcollectiblemax':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
+//             }
+//             process.stdout.write(JSON.stringify(await getCollectibleMax(process.argv[3]))+"\n");
+//             break;
+//         case 'getdeployment':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[5] === 'undefined' ? 'main' : process.argv[5]);
+//             }
+//             process.stdout.write(JSON.stringify(await getDeployment(process.argv[3], parseInt(process.argv[4])))+"\n");
+//             break;
+//         case 'getbalance':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[6] === 'undefined' ? 'main' : process.argv[6]);
+//             }
+//             process.stdout.write(JSON.stringify(await getBalance(process.argv[3], process.argv[4], parseInt(process.argv[5])))+"\n");
+//             break;
+//         case 'getbalances':
+//             if(await mustIndex()) {
+//                 block += 1;
+//                 await index(typeof process.argv[4] === 'undefined' ? 'main' : process.argv[4]);
+//             }
+//             process.stdout.write(await getBalances(process.argv[3])+"\n");
+//             break;
+//         default:
+//             process.stdout.write('{"error":true,"message":"Unknown command"}'+"\n");
+//             break;
+//     }
+// }
 
 /**
  * Returns the current max. number for a collectible
@@ -621,12 +649,12 @@ async function index(network = 'main')
 
     console.log('Done indexing block', block);
 
-    if(await mustIndex())
-    {
-        block += 1;
-        await sleep(1);
-        await index(network);
-    }
+    // if(await mustIndex())
+    // {
+    //     block += 1;
+    //     await sleep(1);
+    //     await index(network);
+    // }
 }
 
 /**
