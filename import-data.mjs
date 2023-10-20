@@ -164,12 +164,14 @@ export default async function () {
         type: 'string',
         index: true,
         sort: true,
+        facet: true,
       },
       {
         name: 'tickid',
         type: 'int64',
         index: true,
         sort: true,
+        facet: true,
       },
       {
         name: 'value',
