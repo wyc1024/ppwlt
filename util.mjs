@@ -7,6 +7,13 @@ export function toTypesenseValue(key, value) {
   if (typeof json.traits === 'string') {
     json.traits = [json.traits]
   }
+  if (key.startsWith('d_')) {
+    if (json.col) {
+      json.iscol = true
+    } else {
+      json.iscol = false
+    }
+  }
   return json
 }
 

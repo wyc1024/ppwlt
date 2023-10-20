@@ -1,5 +1,5 @@
 import { Address, Script, Signer, Tap, Tx } from '@cmdcode/tapscript';
-import { Level } from 'level';
+import level from './db.mjs'
 import * as ecc from 'tiny-secp256k1';
 import _bip32 from "bip32";
 const { BIP32Factory } = _bip32;
@@ -9,6 +9,7 @@ import {exec, execSync} from "child_process";
 import Os from 'os'
 import goodbye from 'graceful-goodbye'
 import config from 'config'
+import importData from './import-data.mjs'
 
 function backupIndexedData() {
     try {
@@ -23,19 +24,17 @@ async function indexNextBlock() {
         block += 1
         await sleep(1)
         await index()
-        if (block % 10 === 0) {
+        if (block % 50 === 0) {
             backupIndexedData()
         }
+        console.log('start importData()')
+        await importData()
+        console.log('end importData()')
     }
-}
-
-function getDb() {
-    return db
 }
 
 export {
     indexNextBlock,
-    getDb,
 }
 
 /*
@@ -51,7 +50,7 @@ const btc_cli_path = config.get('bitcoin_cli_path');
 let block = config.get('start_block');
 let legacy_block_end = 810000;
 
-const db = new Level('pipe', { valueEncoding: 'json'  });
+const db = level
 
 const op_table = {
     p : '50',

@@ -1,6 +1,5 @@
 import { toTypesenseValue, typesense } from './util.mjs'
-// import { Level } from 'level';
-import { getDb } from './pipe.mjs';
+import db from './db.mjs';
 
 export default async function () {
 
@@ -161,6 +160,18 @@ export default async function () {
         infix: true,
       },
       {
+        name: 'tick',
+        type: 'string',
+        index: true,
+        sort: true,
+      },
+      {
+        name: 'tickid',
+        type: 'int64',
+        index: true,
+        sort: true,
+      },
+      {
         name: 'value',
         type: 'int64',
         index: true,
@@ -245,6 +256,13 @@ export default async function () {
         name: 'col',
         type: 'string',
         optional: true,
+        index: true,
+        sort: true,
+        facet: true,
+      },
+      {
+        name: 'iscol',
+        type: 'bool',
         index: true,
         sort: true,
         facet: true,
@@ -388,7 +406,6 @@ export default async function () {
 
 
   // const db = new Level('pipe', { valueEncoding: 'json' });
-  const db = getDb()
 
   let count = 0
   const utxo = []
@@ -410,7 +427,14 @@ export default async function () {
     } else if (key.startsWith('spent_utxo_')) {
       spentUtxo.push(toTypesenseValue(key, value))
     } else if (key.startsWith('a_')) {
-      amount.push({ id: key, key, value: Number(value) })
+      const keySplited = key.split('_')
+      amount.push({
+        id: key,
+        key,
+        value: Number(value),
+        tick: keySplited[2],
+        tickid: Number(keySplited[3]),
+      })
     } else if (key.startsWith('d_')) {
       deployment.push(toTypesenseValue(key, value))
     } else if (key.startsWith('c_max_')) {
@@ -436,10 +460,14 @@ export default async function () {
     //     .documents()
     //     .create(toTypesenseValue(key, value))
     // } else if (key.startsWith('a_')) {
-    //   await typesense
-    //     .collections('amount')
-    //     .documents()
-    //     .create({ id: key, key, value: Number(value) })
+    //   const keySplited = key.split('_')
+    //   amount.push({
+    //     id: key,
+    //     key,
+    //     value: Number(value),
+    //     tick: keySplited[2],
+    //     tickid: Number(keySplited[3]),
+    //   })
     // } else if (key.startsWith('d_')) {
     //   await typesense
     //     .collections('deployment')
@@ -473,40 +501,40 @@ export default async function () {
   console.log(count)
 
   try {
-    await typesense
+    utxo.length !== 0 && await typesense
       .collections('utxo')
       .documents()
       .import(utxo)
-    await typesense
+    spentUtxo.length !== 0 && await typesense
       .collections('spent_utxo')
       .documents()
       .import(spentUtxo)
-    await typesense
+    amount.length !== 0 && await typesense
       .collections('amount')
       .documents()
       .import(amount)
-    await typesense
+    deployment.length !== 0 && await typesense
       .collections('deployment')
       .documents()
       .import(deployment)
-    await typesense
+    collection.length !== 0 && await typesense
       .collections('collection')
       .documents()
       .import(collection)
-    await typesense
+    cmax.length !== 0 && await typesense
       .collections('cmax')
       .documents()
       .import(cmax)
-    await typesense
+    da.length !== 0 && await typesense
       .collections('da')
       .documents()
       .import(da)
-    await typesense
+    kv.length !== 0 && await typesense
       .collections('kv')
       .documents()
       .import(kv)
   } catch (e) {
-    console.log(e)
+    process.exit(1)
   }
 
 }
