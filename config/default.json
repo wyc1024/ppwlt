@@ -1,4 +1,7 @@
 {
   "bitcoin_cli_path": "/usr/local/bin/bitcoin-cli -conf=/Volumes/T7\\ Shield/Bitcoin/bitcoin.conf",
-  "start_block": 809607
+  "start_block": 809607,
+
+  "import_when_start": false,
+  "import_every_block": false
 }

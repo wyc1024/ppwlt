@@ -1,9 +1,14 @@
 import { indexNextBlock } from './pipe.mjs'
 import schedule from 'node-schedule'
-import importData from './import-data.mjs'
+import meiliImport from './meili-import.mjs'
+import config from 'config'
 
 
-await importData()
+if (config.import_when_start) {
+  console.log('start import_when_start')
+  await meiliImport()
+  console.log('end import_when_start')
+}
 
 
 // TODO: */3 * * * *
@@ -13,9 +18,7 @@ let isRunning = false
 const job = schedule.scheduleJob('*/1 * * * * *', async function () {
   if (isRunning) return
   isRunning = true
-  console.log('start indexNextBlock()')
   await indexNextBlock()
-  console.log('end indexNextBlock()')
   isRunning = false
 })
 

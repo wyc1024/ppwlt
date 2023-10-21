@@ -9,7 +9,7 @@ import {exec, execSync} from "child_process";
 import Os from 'os'
 import goodbye from 'graceful-goodbye'
 import config from 'config'
-import importData from './import-data.mjs'
+import meiliImport from './meili-import.mjs'
 
 function backupIndexedData() {
     try {
@@ -23,13 +23,17 @@ async function indexNextBlock() {
     if(await mustIndex()) {
         block += 1
         await sleep(1)
+        console.log('start indexNextBlock()')
         await index()
+        console.log('end indexNextBlock()')
         if (block % 50 === 0) {
             backupIndexedData()
         }
-        console.log('start importData()')
-        await importData()
-        console.log('end importData()')
+        if (config.import_every_block) {
+            console.log('start importData()')
+            await meiliImport()
+            console.log('end importData()')
+        }
     }
 }
 
